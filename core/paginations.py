@@ -5,8 +5,11 @@ from rest_framework.response import Response
 
 
 class QandaCursorPagination(CursorPagination):
-    # page_size = ...
-    # ordering = ...
+
+    # def __init__(self, page_size, ordering):
+    #     self.page_size = page_size
+    #     self.ordering = ordering
+    ordering = '-created_at'
 
     def get_paginated_response(self, data):
         response = Response(data)
