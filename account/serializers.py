@@ -2,6 +2,7 @@ from django.contrib.auth.hashers import check_password
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
+from profiles.serializers import ProfileSerializer
 from .models import User
 
 
@@ -19,11 +20,17 @@ class UserSerializer(serializers.ModelSerializer):
     # The client should not be able to send a token along with a registration
     # request. Making `token` read-only handles that for us.
 
+
+    profile = ProfileSerializer(write_only=True)
+
     class Meta:
         model = User
         # List all of the fields that could possibly be included in a request
         # or response, including fields specified explicitly above.
-        fields = ['email', 'username', 'password',]
+        fields = (
+            'email', 'username', 'password', 'token', 'profile', 'bio',
+            'image',
+        )
 
     def create(self, validated_data):
         # Use the `create_user` method we wrote earlier to create a new user.
@@ -33,6 +40,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
+        profile_data = validated_data.pop('profile', {})
 
         for (key, value) in validated_data.items():
             # For the keys remaining in `validated_data`, we will set them on
@@ -44,6 +52,9 @@ class UserSerializer(serializers.ModelSerializer):
             # of the security stuff that we shouldn't be concerned with.
             instance.set_password(password)
 
+        for (key, value) in profile_data.items():
+            setattr(instance.profile, key, value)
+
         # After everything has been updated we must explicitly save
         # the model. It's worth pointing out that `.set_password()` does not
         # save the model.
@@ -51,17 +62,17 @@ class UserSerializer(serializers.ModelSerializer):
 
         return instance
 
-class LoginSerializer(serializers.Serializer):
+class LoginSerializer(serializers.ModelSerializer):
     # LoginSerializer(email='', password='') - __init__ 에 작성
     # LoginSerializer(data=request.data).create(), .save() - def create
     email = serializers.EmailField()
     password = serializers.CharField(style={'input_type': 'password'})
 
-    def __init__(self, **kwargs):
+    def __init__(self, valid_data):
         super(LoginSerializer, self).__init__()
         self.key = None
-        self.email = kwargs.get('email')
-        self.password = kwargs.get('password')
+        self.email = valid_data.get('email', None)
+        self.password = valid_data.get('password', None)
         self.user = User.objects.filter(email=self.email).first()
         if self.user:
             authenticate = check_password(self.password, self.user.password)

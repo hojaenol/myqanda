@@ -47,7 +47,9 @@ INSTALLED_APPS = [
     'notice',
     'core',
     'contact',
-    'account'
+    'account',
+    'profiles',
+
 
 ]
 
